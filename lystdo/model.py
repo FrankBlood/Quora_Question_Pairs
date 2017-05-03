@@ -9,7 +9,8 @@ The code is tested on Keras 2.0.0 using Tensorflow backend, and Python 2.7
 ########################################
 from keras.models import Model
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Embedding, LSTM, GRU, Input, Bidirectional, Merge, recurrent, RepeatVector, Activation
+from keras.layers import Dense, Embedding, LSTM, GRU, recurrent, Convolution1D, GlobalMaxPooling1D
+from keras.layers import Dropout, Input, Bidirectional, Merge, RepeatVector, Activation, TimeDistributed, Flatten
 from keras.layers.merge import concatenate, add, dot, multiply
 from keras.optimizers import RMSprop, Adam, SGD, Adagrad, Adadelta, Adamax, Nadam
 from keras.layers.normalization import BatchNormalization
@@ -114,6 +115,49 @@ def lstm_multiply(nb_words, EMBEDDING_DIM, \
                                 input_length=MAX_SEQUENCE_LENGTH,
                                 trainable=False)
     lstm_layer = LSTM(num_lstm, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm)
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    x1 = lstm_layer(embedded_sequences_1)
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    y1 = lstm_layer(embedded_sequences_2)
+
+    merged = multiply([x1, y1])
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    merged = Dense(num_dense, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+    model.compile(loss='binary_crossentropy',
+              optimizer='nadam',
+              metrics=['acc'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+########################################
+## bilstm multiply
+########################################
+def bilstm_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    lstm_layer = Bidirectional(LSTM(num_lstm, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm))
 
     sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
     embedded_sequences_1 = embedding_layer(sequence_1_input)
@@ -317,6 +361,105 @@ def gru_multiply(nb_words, EMBEDDING_DIM, \
     return model
 
 ########################################
+## gru add multiply
+########################################
+def gru_add_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    lstm_layer = GRU(num_lstm, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm)
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    model_q1 = lstm_layer(embedded_sequences_1)
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    model_q2 = lstm_layer(embedded_sequences_2)
+
+    distance = add([model_q1, model_q2])
+    distance = Dropout(rate_drop_dense)(distance)
+    distance = BatchNormalization()(distance)
+
+    angle = multiply([model_q1, model_q2])
+    angle = Dropout(rate_drop_dense)(angle)
+    angle = BatchNormalization()(angle)
+
+    merged = concatenate([distance, angle])
+
+    merged = Dense(num_dense*2, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+
+    model.compile('nadam', 'binary_crossentropy', metrics=['accuracy'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+########################################
+## GRU attention multiply
+########################################
+def gru_attention_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    lstm_layer = GRU(num_lstm, return_sequences=True, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm)
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    x1 = lstm_layer(embedded_sequences_1)
+    attention1 = TimeDistributed(Dense(1, activation='tanh'))(x1)
+    attention1 = Flatten()(attention1)
+    attention1 = Activation('softmax')(attention1)
+    x1 = multiply([x1, attention1])
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    y1 = lstm_layer(embedded_sequences_2)
+    attention2 = TimeDistributed(Dense(1, activation='tanh'))(y1)
+    attention2 = Flatten()(attention2)
+    attention2 = Activation('softmax')(attention2)
+    y1 = multiply([y1, attention2])
+
+    merged = multiply([x1, y1])
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    merged = Dense(num_dense, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+    model.compile(loss='binary_crossentropy',
+              optimizer='nadam',
+              metrics=['acc'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+########################################
 ## bigru concat
 ########################################
 def bigru_concat(nb_words, EMBEDDING_DIM, \
@@ -403,6 +546,53 @@ def bigru_multiply(nb_words, EMBEDDING_DIM, \
     return model
 
 ########################################
+## bi2gru multiply
+########################################
+def bi2gru_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    lstm_layer1 = Bidirectional(GRU(num_lstm, return_sequences=True, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm))
+    lstm_layer2 = Bidirectional(GRU(num_lstm, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm))
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    x1 = lstm_layer1(embedded_sequences_1)
+    x1 = lstm_layer2(x1)
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    y1 = lstm_layer1(embedded_sequences_2)
+    y1 = lstm_layer2(y1)
+
+    merged = multiply([x1, y1])
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    merged = Dense(num_dense, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+    model.compile(loss='binary_crossentropy',
+              optimizer='nadam',
+              metrics=['acc'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+
+########################################
 ## bigru multiply no dense
 ########################################
 def bigru_multiply_no_dense(nb_words, EMBEDDING_DIM, \
@@ -441,6 +631,104 @@ def bigru_multiply_no_dense(nb_words, EMBEDDING_DIM, \
     model.compile(loss='binary_crossentropy',
               optimizer='nadam',
               metrics=['acc'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+########################################
+## bigru add multiply
+########################################
+def bigru_add_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    lstm_layer = Bidirectional(GRU(num_lstm, dropout=rate_drop_lstm, recurrent_dropout=rate_drop_lstm))
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    model_q1 = lstm_layer(embedded_sequences_1)
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    model_q2 = lstm_layer(embedded_sequences_2)
+
+    distance = add([model_q1, model_q2])
+    distance = Dropout(rate_drop_dense)(distance)
+    distance = BatchNormalization()(distance)
+
+    angle = multiply([model_q1, model_q2])
+    angle = Dropout(rate_drop_dense)(angle)
+    angle = BatchNormalization()(angle)
+
+    merged = concatenate([distance, angle])
+
+    merged = Dense(num_dense*2, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+
+    model.compile('nadam', 'binary_crossentropy', metrics=['accuracy'])
+    model.summary()
+    # print(STAMP)
+    return model
+
+########################################
+## cnn multiply
+########################################
+def cnn_multiply(nb_words, EMBEDDING_DIM, \
+           embedding_matrix, MAX_SEQUENCE_LENGTH, \
+           num_lstm, num_dense, rate_drop_lstm, \
+           rate_drop_dense, act):
+    embedding_layer = Embedding(nb_words,
+                                EMBEDDING_DIM,
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    cnn_layer = Convolution1D(nb_filter=num_lstm,
+                              filter_length=8,
+                              border_mode='valid',
+                              activation='relu',
+                              subsample_length=1)
+
+    sequence_1_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_1 = embedding_layer(sequence_1_input)
+    model_q1 = cnn_layer(embedded_sequences_1)
+    model_q1 = GlobalMaxPooling1D()(model_q1)
+    # model_q1 = Dropout(0.25)(model_q1)
+
+    sequence_2_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    embedded_sequences_2 = embedding_layer(sequence_2_input)
+    model_q2 = cnn_layer(embedded_sequences_2)
+    model_q2 = GlobalMaxPooling1D()(model_q2)
+    # model_q2 = Dropout(0.25)(model_q2)
+
+    merged = multiply([model_q1, model_q2])
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    merged = Dense(num_dense, activation=act)(merged)
+    merged = Dropout(rate_drop_dense)(merged)
+    merged = BatchNormalization()(merged)
+
+    preds = Dense(1, activation='sigmoid')(merged)
+
+    ########################################
+    ## train the model
+    ########################################
+    model = Model(inputs=[sequence_1_input, sequence_2_input], outputs=preds)
+
+    model.compile('nadam', 'binary_crossentropy', metrics=['accuracy'])
     model.summary()
     # print(STAMP)
     return model

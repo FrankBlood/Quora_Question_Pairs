@@ -127,6 +127,8 @@ if __name__ == '__main__':
     # model_name = 'lstm_multiply'
     # model = bilstm_concat(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bilstm_concat'
+    # model = bigru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'bigru_multiply'
     
     # model = gru_concat(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'gru_concat'
@@ -134,12 +136,21 @@ if __name__ == '__main__':
     # model_name = 'gru_add'
     # model = gru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'gru_multiply'
+    # model = gru_add_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'gru_add_multiply'
     # model = bigru_concat(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bigru_concat'
-    model = bigru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
-    model_name = 'bigru_multiply'
+    # model = bigru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'bigru_multiply'
+    # model = bi2gru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'bi2gru_multiply'
     # model = bigru_multiply_no_dense(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bigru_multiply_no_dense'
+    # model = bigru_add_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'bigru_add_multiply'
+
+    model = cnn_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    model_name = 'cnn_multiply'
     
     # model = bilstm_distance_angle(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bilstm_distance_angle'

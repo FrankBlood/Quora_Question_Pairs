@@ -215,7 +215,7 @@ else:
 ## define the model structure
 ########################################
 model_num = 0
-for (num_lstm, num_dense, rate_drop_lstm, rate_drop_dense) in [(256, 200, 0.25, 0.25), (225, 134, 0.16, 0.3), (227, 147, 0.36, 0.4)]:
+for (num_lstm, num_dense, rate_drop_lstm, rate_drop_dense) in [(275, 300, 0.3, 0.3)]:
     STAMP = 'lstm_%d_%d_%.2f_%.2f'%(num_lstm, num_dense, rate_drop_lstm, rate_drop_dense)
     model_num += 1
     # model = lystdo(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
@@ -231,12 +231,17 @@ for (num_lstm, num_dense, rate_drop_lstm, rate_drop_dense) in [(256, 200, 0.25, 
     # model_name = 'gru_concat'
     # model = gru_add(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'gru_add'
+    # model = gru_add_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'gru_add_multiply'
     # model = gru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'gru_multiply'
     # model = bigru_concat(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bigru_concat'
-    model = bigru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
-    model_name = 'bigru_multiply'
+    # model = bigru_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    # model_name = 'bigru_multiply'
+    model = bigru_add_multiply(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
+    model_name = 'bigru_add_multiply'
+
     # model = bilstm_distance_angle(nb_words, EMBEDDING_DIM, embedding_matrix, MAX_SEQUENCE_LENGTH, num_lstm, num_dense, rate_drop_lstm, rate_drop_dense, act)
     # model_name = 'bilstm_distance_angle'
 
@@ -250,7 +255,7 @@ for (num_lstm, num_dense, rate_drop_lstm, rate_drop_dense) in [(256, 200, 0.25, 
     preds = model.predict([test_data_1, test_data_2], batch_size=512, verbose=1)
     preds += model.predict([test_data_2, test_data_1], batch_size=512, verbose=1)
 
-preds /= 6
+preds /= model_num * 2
 
 submission = pd.DataFrame({'test_id':test_ids, 'is_duplicate':preds.ravel()})
-submission.to_csv('./results/' + model_name + str(model_num) + '.csv', index=False)
+submission.to_csv('./results/' + model_name + str(model_num) + STAMP + '.csv', index=False)

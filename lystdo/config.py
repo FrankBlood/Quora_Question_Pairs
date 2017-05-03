@@ -37,14 +37,17 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 ## set directories and parameters
 ########################################
 BASE_DIR = '../data/'
-EMBEDDING_FILE = BASE_DIR + 'vectors.bin'
-# EMBEDDING_FILE = BASE_DIR + 'GoogleNews-vectors-negative300.bin'
-TRAIN_DATA_FILE = BASE_DIR + 'train_lower_stemmer.csv'
-TEST_DATA_FILE = BASE_DIR + 'test_lower_stemmer.csv'
-# TRAIN_DATA_FILE = BASE_DIR + 'train.csv'
-# TEST_DATA_FILE = BASE_DIR + 'test.csv'
+# EMBEDDING_FILE = BASE_DIR + 'vectors_5.bin'
+# EMBEDDING_FILE = BASE_DIR + 'vectors_300_8_.bin'
+# EMBEDDING_FILE = BASE_DIR + 'vectors.bin'
+EMBEDDING_FILE = BASE_DIR + 'GoogleNews-vectors-negative300.bin'
+# TRAIN_DATA_FILE = BASE_DIR + 'train_lower_stemmer.csv'
+# TEST_DATA_FILE = BASE_DIR + 'test_lower_stemmer.csv'
+TRAIN_DATA_FILE = BASE_DIR + 'train.csv'
+TEST_DATA_FILE = BASE_DIR + 'test.csv'
 MAX_SEQUENCE_LENGTH = 30
 MAX_NB_WORDS = 200000
+# EMBEDDING_DIM = 128
 EMBEDDING_DIM = 300
 VALIDATION_SPLIT = 0.1
 
@@ -53,8 +56,8 @@ num_dense = np.random.randint(100, 150)
 rate_drop_lstm = 0.15 + np.random.rand() * 0.25
 rate_drop_dense = 0.15 + np.random.rand() * 0.25
 
-num_lstm, num_dense = 256, 200
-rate_drop_lstm, rate_drop_dense = 0.25, 0.25
+num_lstm, num_dense = 300, 300
+rate_drop_lstm, rate_drop_dense = 0.5, 0.5
 
 act = 'relu'
 # re_weight = False # whether to re-weight classes to fit the 17.5% share in test set
